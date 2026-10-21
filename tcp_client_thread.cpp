@@ -43,15 +43,18 @@ bool TCPClientThread::attempt_connect() {
     return false;
   }
   if (!setupSocket()) {
-    return false;
-  }
-  if (!setupPipe()) {
+    close(m_socket);
     return false;
   }
   linfo << "Connecting to " << formatSocketAddress(getSocketAddress(&m_remoteAddr)) << "..." << std::endl;
   if (connect(m_socket, (struct sockaddr *)&m_remoteAddr, sizeof(m_remoteAddr)) < 0) {
     close(m_socket);
     linfo << "Connect failed." << std::endl;
+    return false;
+  }
+  /* Create the signal pipe only once connected: disconnect() closes it, a failed connect would leak it */
+  if (!setupPipe()) {
+    close(m_socket);
     return false;
   }
   linfo << "Connected!" << std::endl;
